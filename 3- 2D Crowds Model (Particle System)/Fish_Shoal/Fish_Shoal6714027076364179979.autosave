@@ -1,0 +1,101 @@
+
+// Array of fish images
+PImage[] fishImages = new PImage[3];
+// Empty array of fish
+ArrayList<Fish> fish = new ArrayList<Fish>();
+
+void setup(){
+    size(800, 600);
+    background(0);
+    noStroke();
+    frameRate(30);
+
+    loadFishImages();
+}
+
+void draw(){
+    background(0);
+    fill(255);
+    ellipse(mouseX, mouseY, 20, 20);
+
+    // Update and display all fish
+    for(int i = 0; i < fish.size(); i++){
+        Fish f = fish.get(i);
+        f.update();
+        f.display();
+    }
+}
+
+void loadFishImages(){
+    fishImages[0] = loadImage("fish1.png");
+    fishImages[1] = loadImage("fish2.png");
+    fishImages[2] = loadImage("fish3.png");
+}
+
+void mousePressed(){
+    // Create a new fish at the mouse position with a random image
+    PImage fishImage = fishImages[int(random(0, fishImages.length))];
+    new Fish(mouseX, mouseY, new PVector(0, 0), new PVector(0.1, 0), 10, 25, fishImage);
+}
+
+class Fish{
+    // Define properties of the fish such as Hunger, Libido, Fear, etc.
+    PVector position;
+    PVector velocity = new PVector(1, 0);
+    PVector acceleration = new PVector(1, 0);
+    PVector direction = new PVector(1, 1);
+    float maxSpeed = 10;
+    float size =25;
+    float life;
+    PImage fishImage;
+
+    // Constructor
+    Fish(float x, float y, PVector velocity, PVector acceleration, float maxSpeed, float size, PImage fishImage ){
+        position = new PVector(x, y);
+        this.velocity = velocity;
+        this.acceleration = acceleration;
+        this.maxSpeed = maxSpeed;
+        this.size = size;
+        this.fishImage = fishImage;
+
+        // Add the fish to the array of fish
+        fish.add(this);
+
+    }
+  // Draw the fish
+    void display(){
+        // Draw the fish
+        image(fishImage, position.x, position.y, size, size);
+    }
+
+    void update(){
+        // Debug velocity
+        println(velocity.mag());
+
+        // Update the position in x
+        position.add(velocity);
+        velocity.add(acceleration);
+        acceleration.mult(0);
+        // acelerate the fish in the direction it is facing until it reaches max speed
+        if(velocity.mag() < maxSpeed){
+            velocity.add(direction);
+        }
+        // Calculate the direction the fish is facing
+        //direction = velocity.copy();
+
+        checkEdges();
+    }
+
+    void checkEdges(){
+        // Check if the fish is off the screen and if so, change set the velocity to 0 and change direction (invert the direction)
+        if(position.x >= width || position.x <= 0){
+            velocity.x = 0;
+            direction.x *= -1;
+        }
+        if(position.y >= height || position.y <= 0){
+            velocity.y = 0;
+            direction.y *= -1;
+        }
+        
+    }
+}
