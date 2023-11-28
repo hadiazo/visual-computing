@@ -1,100 +1,84 @@
-// WebGL context and camera
-let graphicsContext, observer;
+let webGLContext, mainCamera, distanceComparator, pyramidFaces = [], isZBufferEnabled = true;
 
-// Function to compare distances for sorting
-let compareDistance;
+function setup() {
+  createCanvas(640, 480, WEBGL); // Set up a canvas with 3D rendering
+  mainCamera = createCamera();   // Create a camera for viewing the scene
+  
+  webGLContext = this._renderer.GL; // Get WebGL context for low-level operations
 
-// Array to store geometric shapes
-let geometricShapes = [];
-
-// Flag to enable or disable the Z-buffer
-let zBufferEnabled = true;
-
-// Class representing a triangular face of a pyramid
-class TriangularFace {
-  constructor(v1, v2, v3) {
-    this.v1 = v1; // Vertex 1
-    this.v2 = v2; // Vertex 2
-    this.v3 = v3; // Vertex 3
-    // Assign a random color to the face
-    this.color = color(random(255), random(255), random(255));
-  }
-
-  // Render function to draw the triangular face
-  render() {
-    fill(this.color); // Set the color
-    beginShape();
-    // Define the vertices of the triangle
-    vertex(this.v1.x, this.v1.y, this.v1.z);
-    vertex(this.v2.x, this.v2.y, this.v2.z);
-    vertex(this.v3.x, this.v3.y, this.v3.z);
-    endShape(CLOSE); // Close the shape
-  }
-}
-
-// Setup function: initializes the canvas, camera, and pyramids
-function initialize() {
-  createCanvas(640, 480, WEBGL); // Create a WebGL canvas
-  observer = createCamera(); // Create a camera
-
-  graphicsContext = this._renderer.GL; // Get the WebGL context
-
-  // Generate pyramids at different positions
+  // Create pyramids at different positions
   for (let i = -2; i < 2; i++) {
     for (let j = -2; j < 2; j++) {
       for (let k = -2; k < 2; k++) {
-        constructPyramid(75 * i, 75 * j, 75 * k);
+        createPyramid(75 * i, 75 * j, 75 * k);
       }
     }
   }
-
-  // Comparator for sorting shapes based on distance to camera
-  compareDistance = (a, b) => {
-    // Calculate distance of each shape from the camera
-    const distA = dist(a.v1.x, a.v1.y, a.v1.z, observer.eyeX, observer.eyeY, observer.eyeZ);
-    const distB = dist(b.v1.x, b.v1.y, b.v1.z, observer.eyeX, observer.eyeY, observer.eyeZ);
-    return distB - distA; // Sort in descending order
+  
+  // Comparator function to sort pyramid faces based on distance to camera
+  distanceComparator = (faceA, faceB) => {
+    // Calculate the distance from each face to the camera's position
+    const distA = dist(faceA.p1.x, faceA.p1.y, faceA.p1.z, mainCamera.eyeX, mainCamera.eyeY, mainCamera.eyeZ);
+    const distB = dist(faceB.p1.x, faceB.p1.y, faceB.p1.z, mainCamera.eyeX, mainCamera.eyeY, mainCamera.eyeZ);
+    
+    // Faces closer to the camera come first
+    return distB - distA;
   };
 
-  noStroke(); // Disable drawing outlines
+  noStroke();
 }
 
-// Function to create a pyramid at a given position
-function constructPyramid(x, y, z) {
-  // Create vertices for the pyramid
-  let vertex1 = createVector(x + random(75), y + random(75), z);
-  let vertex2 = createVector(x + 10 + random(75), y + 10 + random(75), z);
-  let vertex3 = createVector(x + random(75), y + 10 + random(75), z);
-  let vertex4 = createVector(x + random(75), y + random(75), z + 1 + random(75));
-
-  // Create faces for the pyramid and add them to the shapes array
-  let face1 = new TriangularFace(vertex1, vertex2, vertex3);
-  let face2 = new TriangularFace(vertex1, vertex2, vertex4);
-  let face3 = new TriangularFace(vertex1, vertex3, vertex4);
-  let face4 = new TriangularFace(vertex2, vertex4, vertex3);
-  geometricShapes.push(face1, face2, face3, face4);
+function draw() {
+  background(0); // Clear the background
+  orbitControl(); // Enable orbiting around the scene with mouse
+  
+  pyramidFaces.sort(distanceComparator); // Sort faces by distance to camera
+  pyramidFaces.forEach(face => face.show()); // Display each face
 }
 
-// Draw function: renders the scene
-function renderLoop() {
-  background(0); // Set the background color
-  orbitControl(); // Enable orbit controls for the camera
-
-  // Sort shapes based on their distance to the camera
-  geometricShapes.sort(compareDistance);
-
-  // Render each shape
-  geometricShapes.forEach(shape => shape.render());
-}
-
-// Function to toggle the Z-buffer when the spacebar is pressed
-function toggleZBuffer() {
-  if (key === ' ') {
-    zBufferEnabled = !zBufferEnabled;
-    if (zBufferEnabled) {
-      graphicsContext.enable(graphicsContext.DEPTH_TEST); // Enable Z-buffer
+function keyPressed() {
+  // Toggle depth testing (Z-buffer) when spacebar is pressed
+  if (key === ' '){
+    isZBufferEnabled = !isZBufferEnabled;
+    if (isZBufferEnabled) {
+      webGLContext.enable(webGLContext.DEPTH_TEST);
     } else {
-      graphicsContext.disable(graphicsContext.DEPTH_TEST); // Disable Z-buffer
+      webGLContext.disable(webGLContext.DEPTH_TEST);
     }
+  }
+}
+
+function createPyramid(x, y, z) {
+  // Create pyramid vertices
+  let v1 = createVector(x + random(75), y + random(75), z);
+  let v2 = createVector(x + 10 + random(75), y + 10 + random(75), z);
+  let v3 = createVector(x + random(75), y + 10 + random(75), z);
+  let v4 = createVector(x + random(75), y + random(75), z + 1 + random(75));
+
+  // Create faces of the pyramid
+  let face1 = new PyramidFace(v1, v2, v3);
+  let face2 = new PyramidFace(v1, v2, v4);
+  let face3 = new PyramidFace(v1, v3, v4);
+  let face4 = new PyramidFace(v2, v4, v3);
+
+  pyramidFaces.push(face1, face2, face3, face4); // Add faces to the list
+}
+
+class PyramidFace {
+  constructor(vertex1, vertex2, vertex3) {
+    this.p1 = vertex1; // First vertex of the face
+    this.p2 = vertex2; // Second vertex of the face
+    this.p3 = vertex3; // Third vertex of the face
+    this.col = color(random(0), random(255), random(255/2)); // Random color for the face
+  }
+  
+  show() {
+    // Draw the face
+    fill(this.col);
+    beginShape();
+    vertex(this.p1.x, this.p1.y, this.p1.z);
+    vertex(this.p2.x, this.p2.y, this.p2.z);
+    vertex(this.p3.x, this.p3.y, this.p3.z);
+    endShape(CLOSE);
   }
 }
