@@ -1,84 +1,76 @@
-let webGLContext, mainCamera, distanceComparator, pyramidFaces = [], isZBufferEnabled = true;
+let graphicsContext, observerCamera, depthComparator, geometricShapes = [], isZBufferEnabled = true;
 
 function setup() {
-  createCanvas(640, 480, WEBGL); // Set up a canvas with 3D rendering
-  mainCamera = createCamera();   // Create a camera for viewing the scene
+  createCanvas(640, 480, WEBGL);
+  observerCamera = createCamera();
   
-  webGLContext = this._renderer.GL; // Get WebGL context for low-level operations
+  graphicsContext = this._renderer.GL;
 
-  // Create pyramids at different positions
   for (let i = -2; i < 2; i++) {
     for (let j = -2; j < 2; j++) {
       for (let k = -2; k < 2; k++) {
-        createPyramid(75 * i, 75 * j, 75 * k);
+        generatePyramid(75*i, 75*j, 75*k);
       }
     }
   }
   
-  // Comparator function to sort pyramid faces based on distance to camera
-  distanceComparator = (faceA, faceB) => {
-    // Calculate the distance from each face to the camera's position
-    const distA = dist(faceA.p1.x, faceA.p1.y, faceA.p1.z, mainCamera.eyeX, mainCamera.eyeY, mainCamera.eyeZ);
-    const distB = dist(faceB.p1.x, faceB.p1.y, faceB.p1.z, mainCamera.eyeX, mainCamera.eyeY, mainCamera.eyeZ);
-    
-    // Faces closer to the camera come first
-    return distB - distA;
+  depthComparator = (shapeA, shapeB) => {
+    const distanceA = dist(shapeA.vertex1.x, shapeA.vertex1.y, shapeA.vertex1.z, observerCamera.eyeX, observerCamera.eyeY, observerCamera.eyeZ);
+    const distanceB = dist(shapeB.vertex1.x, shapeB.vertex1.y, shapeB.vertex1.z, observerCamera.eyeX, observerCamera.eyeY, observerCamera.eyeZ);
+  
+    return distanceB - distanceA;
   };
 
   noStroke();
 }
 
 function draw() {
-  background(0); // Clear the background
-  orbitControl(); // Enable orbiting around the scene with mouse
+  background(0);
+  orbitControl();
   
-  pyramidFaces.sort(distanceComparator); // Sort faces by distance to camera
-  pyramidFaces.forEach(face => face.show()); // Display each face
+  geometricShapes.sort(depthComparator);
+  geometricShapes.forEach(shape => shape.display());
 }
 
 function keyPressed() {
-  // Toggle depth testing (Z-buffer) when spacebar is pressed
   if (key === ' '){
     isZBufferEnabled = !isZBufferEnabled;
     if (isZBufferEnabled) {
-      webGLContext.enable(webGLContext.DEPTH_TEST);
+      graphicsContext.enable(graphicsContext.DEPTH_TEST);
     } else {
-      webGLContext.disable(webGLContext.DEPTH_TEST);
+      graphicsContext.disable(graphicsContext.DEPTH_TEST);
     }
   }
 }
 
-function createPyramid(x, y, z) {
-  // Create pyramid vertices
-  let v1 = createVector(x + random(75), y + random(75), z);
-  let v2 = createVector(x + 10 + random(75), y + 10 + random(75), z);
-  let v3 = createVector(x + random(75), y + 10 + random(75), z);
-  let v4 = createVector(x + random(75), y + random(75), z + 1 + random(75));
+function generatePyramid(x, y, z) {
+  let vertex1 = createVector(x + random(75), y + random(75), z);
+  let vertex2 = createVector(x + 10 + random(75), y + 10 + random(75), z);
+  let vertex3 = createVector(x + random(75), y + 10 + random(75), z);
+  let vertex4 = createVector(x + random(75), y + random(75), z + 1 + random(75));
 
-  // Create faces of the pyramid
-  let face1 = new PyramidFace(v1, v2, v3);
-  let face2 = new PyramidFace(v1, v2, v4);
-  let face3 = new PyramidFace(v1, v3, v4);
-  let face4 = new PyramidFace(v2, v4, v3);
+  let face1 = new PyramidSide(vertex1, vertex2, vertex3);
+  let face2 = new PyramidSide(vertex1, vertex2, vertex4);
+  let face3 = new PyramidSide(vertex1, vertex3, vertex4);
+  let face4 = new PyramidSide(vertex2, vertex4, vertex3);
 
-  pyramidFaces.push(face1, face2, face3, face4); // Add faces to the list
+  geometricShapes.push(face1, face2, face3, face4);
 }
 
-class PyramidFace {
+class PyramidSide {
   constructor(vertex1, vertex2, vertex3) {
-    this.p1 = vertex1; // First vertex of the face
-    this.p2 = vertex2; // Second vertex of the face
-    this.p3 = vertex3; // Third vertex of the face
-    this.col = color(random(0), random(255), random(255/2)); // Random color for the face
+    this.vertex1 = vertex1;
+    this.vertex2 = vertex2;
+    this.vertex3 = vertex3;
+    this.color = color(random(255/2), random(255), random((255/3) + 255/2))
   }
   
-  show() {
-    // Draw the face
-    fill(this.col);
+  display() {
+    fill(this.color);
     beginShape();
-    vertex(this.p1.x, this.p1.y, this.p1.z);
-    vertex(this.p2.x, this.p2.y, this.p2.z);
-    vertex(this.p3.x, this.p3.y, this.p3.z);
+    vertex(this.vertex1.x, this.vertex1.y, this.vertex1.z);
+    vertex(this.vertex2.x, this.vertex2.y, this.vertex2.z);
+    vertex(this.vertex3.x, this.vertex3.y, this.vertex3.z);
     endShape(CLOSE);
   }
 }
