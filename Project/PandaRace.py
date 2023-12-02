@@ -17,12 +17,6 @@ from direct.actor.Actor import Actor
 from panda3d.core import TransparencyAttrib
 from direct.gui.OnscreenImage import OnscreenImage
 
-'''
-The Actor class is for animated models. Note that we use loadModel() for static models and Actor only when 
-they are animated. The two constructor arguments for the Actor class are the name of the file containing 
-the model and a Python dictionary containing the names of the files containing the animations.
-'''
-
 # global variables
 currentGameArrow = 5
 isFirst = False
@@ -76,7 +70,7 @@ class MyApp(ShowBase):
         # Load an title image
         self.titleImg = OnscreenImage(image="images/title.png", pos=(0, 0, 0.5), scale=(1, 0, 0.25))
         self.titleImg.setTransparency(TransparencyAttrib.MAlpha)
-        self.imgObject = OnscreenImage(image="images/intro_banner.png", pos=(0, 0, -0.0), scale=(1, 0, 0.2))
+        self.imgObject = OnscreenImage(image="images/intro_banner.png", pos=(0, 0, -0.5), scale=(1, 0, 0.2))
         self.imgObject.setTransparency(TransparencyAttrib.MAlpha)
 
         # Input controls
@@ -98,16 +92,14 @@ class MyApp(ShowBase):
             panda1CurrentVelocity = panda1CurrentVelocity + 0.1
             actor.setPlayRate(panda1CurrentVelocity * 2,"walk")
 
-            print(panda1CurrentVelocity)
         else:
             global panda2CurrentVelocity
             panda2CurrentVelocity = panda2CurrentVelocity + 0.1
             actor.setPlayRate(panda2CurrentVelocity * 2,"walk")
-            print(panda2CurrentVelocity)
-        #actor.setPlayRate(1,"walk")
-        #vel2=vel+3
-        #vel=vel2
-    
+
+    def calculateMeanDistanceBetweenPandasInY(self, panda1, panda2):
+        return (panda1.getY() + panda2.getY()) / 2
+
     def desacelerate(self,actor):
         # if the actor is the first panda, play the "walk" animation
         actor.setPlayRate(1,"walk")
@@ -116,20 +108,16 @@ class MyApp(ShowBase):
             panda1CurrentVelocity = panda1CurrentVelocity * 0.5
             if panda1CurrentVelocity < 0.2:
                 panda1CurrentVelocity = 0.2
-            print(panda1CurrentVelocity)
         else:
             global panda2CurrentVelocity
             panda2CurrentVelocity = panda2CurrentVelocity * 0.5
             if panda2CurrentVelocity < 0.2:
                 panda2CurrentVelocity = 0.2
-            print(panda2CurrentVelocity)
-        #vel=vel2
 
     def keyRace(self, key, actor):
         global isFirst
         if isFirst == True:
             self.desacelerate(actor)
-            print("cant press more than one key at the same time")
             return
         else:
         # if the actor is the first panda, play the "walk" animation
@@ -193,7 +181,6 @@ class MyApp(ShowBase):
                             self.desacelerate(self.pandaActor)
             self.imgObject.setTransparency(TransparencyAttrib.MAlpha)
 
-
     def moveCameraTask(self, task):
         #angleDegrees = task.time * 6.0
         #angleRadians = angleDegrees * (pi / 180.0)
@@ -204,9 +191,6 @@ class MyApp(ShowBase):
 
         self.camera.setHpr(30, -30, 0)
         return Task.cont
-    
-    def calculateMeanDistanceBetweenPandasInY(self, panda1, panda2):
-        return (panda1.getY() + panda2.getY()) / 2
 
     def movePandasTask(self, task):
         global panda1CurrentVelocity
@@ -227,6 +211,8 @@ class MyApp(ShowBase):
         if self.titleImg != None:
             self.titleImg.destroy()
             self.titleImg = None
+        # set position of the image
+        self.imgObject.setPos(0, 0, 0.0)
         # random number between 0 and 3
         randomNum = randrange(4)
         # choose a random image to display based on the random number
